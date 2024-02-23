@@ -10,7 +10,8 @@ const responses = {
     "00009": "User Not Found!",
     "00010": "Not Found",
     "00011": "Unauthorized! Please login",
-    "00012": "Invalid Credentials"
+    "00012": "Invalid Credentials",
+    "00013": "Token Not Found"
 }
 
 export default responses;

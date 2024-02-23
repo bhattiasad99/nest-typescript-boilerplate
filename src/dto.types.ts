@@ -6,6 +6,10 @@ export class CreateUserDTO {
     role?: 'admin' | 'user';
 }
 
+export class RefreshTokenDTO {
+    refreshToken: string;
+}
+
 export class LoginDTO {
     username: string;
     password: string;
@@ -26,6 +30,7 @@ export class TokenizeUserType {
     id: string;
     username: string;
     role?: 'admin' | 'user';
+    exp?: any;
 }
 
 export type AsyncResponseStructure<PayloadType> = Promise<UnifiedResponseType<PayloadType>>

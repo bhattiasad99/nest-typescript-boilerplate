@@ -1,11 +1,11 @@
-import { AsyncResponseStructure, CreateUserDTO, LoginDTO, TokenPayload } from "@/dto.types";
+import { AsyncResponseStructure, CreateUserDTO, LoginDTO, RefreshTokenDTO, TokenPayload } from "@/dto.types";
 import { UserService } from "@/user/user.service";
 import { catchBlock } from "@/utils/helpers";
 import { Body, Controller, Post } from "@nestjs/common";
 import { validateLogin } from "./auth.validator";
 import { clientError, success } from "@/utils/responses";
 import { STATUS_CODES } from "@/config/constants";
-import { validateCreateUser } from "@/user/user.validator";
+import { validateCreateUser, validateRefreshToken } from "@/user/user.validator";
 import { AuthService } from "./auth.service";
 
 @Controller('auth')
@@ -15,6 +15,34 @@ export class AuthController {
     constructor(userService: UserService, authService: AuthService) {
         this.userService = userService;
         this.authService = authService
+    }
+
+    @Post('refresh')
+    async refreshToken(@Body() refreshTokenDto: RefreshTokenDTO): AsyncResponseStructure<TokenPayload | string> {
+        const { error } = validateRefreshToken(refreshTokenDto)
+        if (error) {
+            return clientError("00004", STATUS_CODES.CLIENT_EXCEPTION.VALIDATION, error.details[0].message)
+        }
+
+        const token = await this.authService.findTokenFromDB(refreshTokenDto.refreshToken)
+        if (!token) {
+            return clientError("00013", STATUS_CODES.CLIENT_EXCEPTION.NOT_FOUND)
+        }
+
+        const isActive = token.active;
+
+        if (!isActive) {
+            return clientError("00005", STATUS_CODES.CLIENT_EXCEPTION.UNAUTHORIZED)
+        }
+
+        const userObj = await this.authService.decodeRefreshToken(token.refreshToken)
+        const newAccessToken = await this.authService.createAccessToken(userObj)
+        const newRefreshToken = await this.authService.createRefreshToken(userObj)
+        await this.authService.deactivateRefreshToken(token.id)
+        return success("00007", {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken
+        })
     }
 
     // Public
@@ -63,9 +91,15 @@ export class AuthController {
                 role: userInformation.role
             })
 
+            const refreshToken = await this.authService.createRefreshToken({
+                id: userInformation.id,
+                username: userInformation.username,
+                role: userInformation.role
+            })
+
             return success("00007", {
                 accessToken,
-                refreshToken: ''
+                refreshToken
             })
         } catch (err) {
             return catchBlock(err)
