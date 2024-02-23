@@ -17,7 +17,7 @@ import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
-    envFilePath: removePrefix(process.env.npm_lifecycle_event, "start:") === 'prod' ? '.env' : `.${removePrefix(process.env.npm_lifecycle_event, "start:")}.env`,
+    envFilePath: `env/${removePrefix(process.env.npm_lifecycle_event, "start:") === 'prod' ? '.env' : `.${removePrefix(process.env.npm_lifecycle_event, "start:")}.env`}`,
   }), ThrottlerModule.forRoot([{
     ttl: 60000,
     limit: 10,
